@@ -1,0 +1,44 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+analyze	mhd_shwave.py	/^def analyze():$/;"	f
+analyze	mri2d.py	/^def analyze():$/;"	f
+analyze	ssheet.py	/^def analyze():$/;"	f
+athena	mhd_shwave.py	/^import scripts.utils.athena as athena$/;"	i
+athena	mri2d.py	/^import scripts.utils.athena as athena$/;"	i
+athena	ssheet.py	/^import scripts.utils.athena as athena$/;"	i
+athena_read	mhd_shwave.py	/^import athena_read  # noqa$/;"	i
+athena_read	mri2d.py	/^import athena_read  # noqa$/;"	i
+athena_read	ssheet.py	/^import athena_read  # noqa$/;"	i
+cmath	ssheet.py	/^import cmath$/;"	i
+logger	mhd_shwave.py	/^logger = logging.getLogger('athena' + __name__[7:])  # set logger name based on module$/;"	v
+logger	mri2d.py	/^logger = logging.getLogger('athena' + __name__[7:])  # set logger name based on module$/;"	v
+logger	ssheet.py	/^logger = logging.getLogger('athena' + __name__[7:])  # set logger name based on module$/;"	v
+logging	mhd_shwave.py	/^import logging$/;"	i
+logging	mri2d.py	/^import logging$/;"	i
+logging	ssheet.py	/^import logging$/;"	i
+math	mhd_shwave.py	/^import math$/;"	i
+math	ssheet.py	/^import math$/;"	i
+mp	ssheet.py	/^import mpmath as mp$/;"	i
+noqa	mhd_shwave.py	/^import athena_read  # noqa$/;"	i
+noqa	mri2d.py	/^import athena_read  # noqa$/;"	i
+noqa	ssheet.py	/^import athena_read  # noqa$/;"	i
+np	mri2d.py	/^import numpy as np$/;"	i
+prepare	mhd_shwave.py	/^def prepare(**kwargs):$/;"	f
+prepare	mri2d.py	/^def prepare(**kwargs):$/;"	f
+prepare	ssheet.py	/^def prepare(**kwargs):$/;"	f
+run	mhd_shwave.py	/^def run(**kwargs):$/;"	f
+run	mri2d.py	/^def run(**kwargs):$/;"	f
+run	ssheet.py	/^def run(**kwargs):$/;"	f
+scripts	mhd_shwave.py	/^import scripts.utils.athena as athena$/;"	i
+scripts	mri2d.py	/^import scripts.utils.athena as athena$/;"	i
+scripts	ssheet.py	/^import scripts.utils.athena as athena$/;"	i
+sys	mhd_shwave.py	/^import sys$/;"	i
+sys	mri2d.py	/^import sys$/;"	i
+sys	ssheet.py	/^import sys$/;"	i
+utils	mhd_shwave.py	/^import scripts.utils.athena as athena$/;"	i
+utils	mri2d.py	/^import scripts.utils.athena as athena$/;"	i
+utils	ssheet.py	/^import scripts.utils.athena as athena$/;"	i

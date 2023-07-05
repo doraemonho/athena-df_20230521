@@ -1,0 +1,271 @@
+How to run the code:
+If you specify  npx=256 and nthreads=2 in the input file, then request 512 processors, 
+and run like:
+% module load gcc openmpi libyogrt
+% mpirun -map-by node -np 256 ./disk2d_omp_mp planet2D.input.new
+
+--------------------------------------------------
+disk2d.dat:  save information at every out_interval
+---------------------------------------------------------------
+    has time history information:
+    col #1: time
+    col #2: maximum radial velocity (gas)
+    col #3: maximum Toorme parameter, Q
+    if (imode_out == 1) then
+       col #4: maximum eccentricity of the disk
+       col #5..#10: mode 0 to mode 5 azimuthally
+       col #11: max(rho_g)/min(rho_g), with region r1reg to r2reg
+       col #12: max(rho_d)/max(rho_d), within the same region
+       col #13: maximum(rho_g) within the disk
+       col #14: maximum(rho_d) within the disk
+       col #15: maximum(rho_d/rho_g) within disk
+       col #16: total disk mass (gas) : code unit
+       col #17:	total disk mass (dust)
+       col #18: mass loss from the inner boundary
+       col #19: mass loss from the outer boundary
+       col #20: (w/ planet) mass accretion loss (half domain): have planet
+       col #20 or #21: coagulation time step if coagulation is on
+       col #21(+1): dust mass loss from the inner boundary
+       col #22(+1): dust mass loss from the outer boundary
+       Col #21 ,or $22, or $23 $24 (dust) indirect_term force (fx,fy)
+       col $20, #21 or #22: time step information
+       # with dust, 13-mass_gas, 14,15,16,17, bc loss
+       # for coagulation: $21 coagulation stepsize, $22 (size_mxRho), $23,$24 (dust mass loss)
+    else
+       col #4: max(rho_g)/min(rho_g), with region r1reg to r2reg
+       col #5: max(rho_d)/min(rho_d), within the same region
+       col #6: maximum(rho_g)    
+       col #7: maximum(rho_d) 
+       col #8: maximum(rho_d/rho_g) 
+       col #9: total disk mass (gas) (code unit) *M_disk*M_star to convert
+       col #10:	total disk mass (dust) #wodust-> #6,7,8 for total,inner,outer
+       col #11: mass loss from the inner boundary (code unit),
+       col #12: mass loss from the outer boundary
+       col #13: (w/ planet) mass accretion loss near planet(half domain)
+       col #13 or #14: coagulation time step if coagulation is on ($9-$11-$12+2*$13 = const)
+       col #14(or +1 or-1): dust mass loss from the inner boundary 
+       col #15(or +1 or-1): dust mass loss from the outer boundary
+       col #14 or #15, wind-removing mass if wind_removal is defined
+       col #14, #15... indirect term fx, fy if (indirect_term = 1.0)
+       col #13 or #14, or #15, or #16: (w/o or w/ planet) time step information       
+    end if
+-----------------------------------------------------------
+
+torq1d.dat: save the information at every dt_out:	 
+----------------------------------------------------------
+    has information for specific frame:
+    col #1: radius
+    col #2: torque information for the first planet
+    col #3: azimuthal-averaged density (gas)
+    col #4: indirect torque from star (w planet) or dust Stokes #(w dust)  
+    col #5: potential vorticity
+    col #6: Mdot (mstar/per-year,  x2*pi for sum over phi-dir)
+    col #7: Reynolds stress
+    col #8: viscous stress, (alpha)
+    col #9: dust density
+    col #10: mdot for dust for single species
+    col #10 to col #10+nDust-1: dust density for each species
+    if (nDust > 1) then
+      col #9+nDust: total density of dust
+      col #9+nDust+1: total density for size above mm-size
+      col #9+nDust+2: total density for size above 0.1mm-size
+      col #9+nDust+3: total density for size above 0.01mm-size
+      col #9+nDust+4: density-averaged size
+      col #9+nDust+5: max Dust-size of this ring
+    else
+      col #10 dust vr
+      col #11 dust vphi
+      col #12 dust size of representative (coagulation_one)
+    endif
+--------------------------------------------------------
+
+torq0.dat, torq1.dat..., information for planet
+-------------------------------------------------------  
+    has information for i-th planet at every out_interval
+    col #1: time
+    col #2: radius-pos
+    col #3: phi-pos
+    col #4: vr
+    col #5: vphi
+    col #6: mass
+    col #7: fr --force in r-dir
+    col #8: fp --force in phi-dir
+    col #9: torque of inner disk: r < sqrt(12)*Roche
+    col #10: torque of co-orbital disk within sqrt(12)*Roche
+    col #11: torque of outer disk: r > sqrt(12)*Roche
+    col #12: total torque
+    col #13: total torque within ball of sqrt(12)*Roche
+    col #14: total torque within the half disk r > rp   
+    col #15: azimuthal-averaged density at planet position
+    col #16: total torque within ball of half Roche
+    col #17: total torque within ball of 1.5*Roche
+    col #18: total torque within ball of 1*Roche
+    col #19: total torque within ball of 2*Roche
+    col #20: total torque from the configuration (star)
+    col #21: total torque within band of 1*Roche
+    col #22: total torque within band of 2*Roche
+    col #23: total disk mass within band of  1*Roche
+    col #24: total disk mass within ball of  1*Roche
+    col #25: total disk mass
+    col #26: total disk mass within band of  2*Roche
+    col #27: density peak
+    col #28: total torque from other planets, or distance between 2 planet
+    col #29: theta
+    col #30: vth
+    col #31: ft -- disk force in theta-dir
+===================================================================================
+Binary file bin_out000i:
+--------------------------------------------------
+    has data stored for each frame at every dt_out
+    Using readbin2_real4_mp.py to read it. It has the following information:
+    Planet information: 
+       rp[*],  phip[*], pmass[*] (planet mass)
+    Disk information:
+       output time: time, (can be converted to orbit at r=1 by /(2*pi) factor
+       disk bounding box, bbox[0..3]: rmin, rmax, phi_min, phi_max
+       scale height cs=h/r at r=1
+       beta: power-law of surface density
+       zeta: power-law of temperature
+       Mdisk: prefactor, scaled to mstar(*)
+       nx, ny: number of grid cells in r-dir and phi-dir
+       np: number of processors used
+       nvar: number of variables saved in the binary file
+       data[nx,ny,nvar] in fortran-ordering:
+       data[:,:,0] -- gas surface density
+       data[:,:,1] -- gas pressure
+       data[:,:,2] -- v_r for gas
+       data[:,:,3] -- v_phi for gas
+       data[:,:,1+i*3] -- dust surface density, i=1,2,...,nDust
+       data[:,:,2+i*3] -- dust radial velocity, i=1,2,...,nDust
+       data[:,:,3+i*3] -- dust azimuthal velocity, i=1,2,...,nDust
+       data[:,:,4+nDust*3] -- 
+       for coagulation_one option:
+       data[:,:,nDust*3+4]:  representative dust size in each cell
+       data[:,:,i], i= nvar-1 or nvar-2 -- Mdot
+       data[:,:,nvar-2] -- Mdot at the cell
+       data[:,:,nvar-1] -- torque for 1st planet
+=============================================================================
+3D simulation:
+-----------------------
+disk.dat save information at every out_interval
+-----------------------  
+    has time history information:
+    col #1: time
+    col #2: maximum radial velocity (gas)
+    col #3: maximum velocity in theta-dir (gas)
+    if (imode_out == 1) then
+       col #4: maximum eccentricity of the disk
+       col #5..#10: mode 0 to mode 5 azimuthally
+       col #11: max(rho_g)/min(rho_g), with region r1reg to r1reg
+       col #12: max(rho_d)/max(rho_d), within the same region
+       col #13: maximum(rho_g) within the region
+       col #14: maximum(rho_d) within the region
+       col #15: maximum(rho_d/rho_g) within the region
+       col #16: total disk mass (gas)
+       col #17:	total disk mass (dust)
+       col #18: mass loss from the inner boundary
+       col #19: mass loss from the outer boundary
+       col #20: mass loss from the inner theta boundary 
+       col #21: mass loss from the outer theta boundary
+       col #22: (w/ planet) mass accretion loss (half domain): have planet
+       col #23(+1): dust mass loss from the inner boundary
+       col #24(+1): dust mass loss from the outer boundary
+       col #25(or +1): dust mass loss from the inner theta boundary 
+       col #26(or +1): dust mass loss from the outer theta boundary
+       col #27: dust mass loss from the island removal
+       col $27 or #28  time step information
+       ## with dust, total gas-mass is ($16-$18-$19-$20-$21) + accrete (#22) 
+       ##      total-dust-mass: ($17-$22-$23-$24-$25)
+       ## w/o dust, total gas-mass is ($13-$14-$15-$16-$17)
+    else
+       col #4: max(rho_g)/min(rho_g), with region r1reg to r2reg
+       col #5: max(rho_d)/min(rho_d), within the same region
+       col #6: maximum(rho_g) 
+       col #7: maximum(rho_d) 
+       col #8: maximum(rho_d/rho_g) 
+       col #9: total disk mass (gas) (code unit) *M_disk*M_star to convert
+       col #10:	total disk mass (dust)
+       col #11: mass loss from the inner boundary (code unit),
+       col #12: mass loss from the outer boundary
+       col #13: mass loss from the inner theta-boundary
+       col #14: mass loss from the outer theta-boundary
+       col #15: (w/ planet) mass accretion loss near planet(half domain)
+       col #16(or +1): dust mass loss from the inner boundary 
+       col #17(or +1): dust mass loss from the outer boundary
+       col #18(or +1): dust mass loss from the inner theta boundary 
+       col #19(or +1): dust mass loss from the outer theta boundary
+       col #20(or +1): removed dust mass due to the island-removing
+       col #20:  time step information, #12 (without dust)    
+       ## without dust, the total mass is ($6-$7-$8-$9-$10), 
+       ##           with mass-planet-accrete +$11 
+       ## with dust, total gas-mass is ($9-$11-$12-$13-$14) + accrete (#15)  
+    end if
+    
+	
+torq0.dat, torq1.dat..., information for planet
+-------------------------------------------------------  
+    has information for i-th planet at every out_interval
+    col #1: time
+    col #2: radius-pos
+    col #3: phi-pos
+    col #4: vr
+    col #5: vphi
+    col #6: mass
+    col #7: fr --force in r-dir
+    col #8: fp --force in phi-dir
+    col #9: torque of inner disk
+    col #10: torque of outer co-orbital disk within sqrt(12)*Roche
+    col #11: torque of outer disk
+    col #12: total torque
+    col #13: total torque within ball of sqrt(12)*Roche
+    col #14: total torque within the half disk r > rp   
+    col #15: azimuthal-averaged density at planet position
+    col #16: total torque within ball of half Roche
+    col #17: total torque within ball of 1.5*Roche
+    col #18: total torque within ball of 1*Roche
+    col #19: total torque within ball of 2*Roche
+    col #20: total torque from the configuration (star)
+    col #21: total torque within band of 1*Roche
+    col #22: total torque within band of 2*Roche
+    col #23: total disk mass within band of  1*Roche
+    col #24: total disk mass within ball of  1*Roche
+    col #25: total disk mass
+    col #26: total disk mass within ball of  2*Roche
+    col #27: density peak
+    col #28: total torque from other planets
+    col #29: theta position; #The following three for inclined planet orbit
+    col #30: vtheta,
+    col #31: disk force in theta for the planet
+---------------------------------------------------------
+Binary file bin_out000i:
+--------------------------------------------------
+    has data stored for each frame at every dt_out
+    Using readbin3_real4_mp.py to read it. It has the following information:
+    Planet information: 
+       rp[*],  phip[*], pmass[*] (planet mass)
+    Disk information:
+       output time: time, (can be converted to orbit at r=1 by /(2*pi) factor
+       disk bounding box, bbox[0..3]: rmin, rmax, phi_min, phi_max
+       scale height cs=h/r at r=1
+       beta: power-law of surface density
+       zeta: power-law of temperature
+       Mdisk: prefactor, scaled to mstar(*)
+       nx, ny, nz: number of grid cells in r-dir and phi-dir
+       np: number of processors used
+       nvar: number of variables saved in the binary file
+       data[nx,ny,nz,nvar] in fortran-ordering:
+       data[:,:,:,0] -- gas density
+       data[:,:,:,1] -- gas pressure
+       data[:,:,:,2] -- v_r for gas
+       data[:,:,:,3] -- v_th for gas
+       data[:,:,:,4] -- v_phi for gas
+       data[:,:,:,5] -- dust density, 
+       data[:,:,:,6] -- dust velocity v_r, 
+       data[:,:,:,7] -- dust velocity v_th, 
+       data[:,:,:,8] -- dust velocity v_phi, 
+
+       data[:,:,2+i*3] -- dust radial velocity, i=1,2,...,nDust
+       data[:,:,3+i*3] -- dust azimuthal velocity, i=1,2,...,nDust
+       for coagulation_one option:
+       data[:,:,7]:  representative dust size in each cell
+

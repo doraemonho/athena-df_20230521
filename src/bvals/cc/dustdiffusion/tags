@@ -1,0 +1,39 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+AddDustDiffusionShearForInit	bvals_shear_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::AddDustDiffusionShearForInit() {$/;"	f	class:DustDiffusionBoundaryVariable
+BVALS_CC_DUSTDIFFUSION_HPP_	bvals_dustdiffusion.hpp	/^#define BVALS_CC_DUSTDIFFUSION_HPP_$/;"	d
+DustDiffusionBoundaryVariable	bvals_dustdiffusion.cpp	/^DustDiffusionBoundaryVariable::DustDiffusionBoundaryVariable($/;"	f	class:DustDiffusionBoundaryVariable
+DustDiffusionBoundaryVariable	bvals_dustdiffusion.hpp	/^class DustDiffusionBoundaryVariable : public CellCenteredBoundaryVariable {$/;"	c
+LoadFluxBoundaryBufferSameLevel	flux_correction_dustdiffusion.cpp	/^int DustDiffusionBoundaryVariable::LoadFluxBoundaryBufferSameLevel(Real *buf,$/;"	f	class:DustDiffusionBoundaryVariable
+PolarWedgeInnerX2	polarwedge_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::PolarWedgeInnerX2($/;"	f	class:DustDiffusionBoundaryVariable
+PolarWedgeOuterX2	polarwedge_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::PolarWedgeOuterX2($/;"	f	class:DustDiffusionBoundaryVariable
+ReflectInnerX1	reflect_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::ReflectInnerX1($/;"	f	class:DustDiffusionBoundaryVariable
+ReflectInnerX2	reflect_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::ReflectInnerX2($/;"	f	class:DustDiffusionBoundaryVariable
+ReflectInnerX3	reflect_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::ReflectInnerX3($/;"	f	class:DustDiffusionBoundaryVariable
+ReflectOuterX1	reflect_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::ReflectOuterX1($/;"	f	class:DustDiffusionBoundaryVariable
+ReflectOuterX2	reflect_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::ReflectOuterX2($/;"	f	class:DustDiffusionBoundaryVariable
+ReflectOuterX3	reflect_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::ReflectOuterX3($/;"	f	class:DustDiffusionBoundaryVariable
+SelectCoarseBuffer	bvals_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::SelectCoarseBuffer(DustDiffusionBoundaryQuantity dustdiffusion_type) {$/;"	f	class:DustDiffusionBoundaryVariable
+SetBoundaryFromCoarser	bvals_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::SetBoundaryFromCoarser(Real *buf,$/;"	f	class:DustDiffusionBoundaryVariable
+SetBoundaryFromFiner	bvals_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::SetBoundaryFromFiner(Real *buf,$/;"	f	class:DustDiffusionBoundaryVariable
+SetBoundarySameLevel	bvals_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::SetBoundarySameLevel(Real *buf,$/;"	f	class:DustDiffusionBoundaryVariable
+ShearQuantities	bvals_shear_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::ShearQuantities(AthenaArray<Real> &shear_cc_, bool upper) {$/;"	f	class:DustDiffusionBoundaryVariable
+SwapDustDiffusionQuantity	bvals_dustdiffusion.cpp	/^void DustDiffusionBoundaryVariable::SwapDustDiffusionQuantity(AthenaArray<Real> &var_dustdiffusion,$/;"	f	class:DustDiffusionBoundaryVariable
+dustdiffusion_type_	bvals_dustdiffusion.hpp	/^  DustDiffusionBoundaryQuantity dustdiffusion_type_;$/;"	m	class:DustDiffusionBoundaryVariable
+final	bvals_dustdiffusion.hpp	/^  int LoadFluxBoundaryBufferSameLevel(Real *buf, const NeighborBlock& nb) final;$/;"	m	class:DustDiffusionBoundaryVariable
+final	bvals_dustdiffusion.hpp	/^  void PolarWedgeInnerX2( Real time, Real dt, int il, int iu, int jl, int kl, int ku, int ngh) final;$/;"	m	class:DustDiffusionBoundaryVariable
+final	bvals_dustdiffusion.hpp	/^  void PolarWedgeOuterX2( Real time, Real dt, int il, int iu, int jl, int kl, int ku, int ngh) final;$/;"	m	class:DustDiffusionBoundaryVariable
+final	bvals_dustdiffusion.hpp	/^  void SetBoundaryFromCoarser(Real *buf, const NeighborBlock& nb) final;$/;"	m	class:DustDiffusionBoundaryVariable
+final	bvals_dustdiffusion.hpp	/^  void SetBoundaryFromFiner(Real *buf, const NeighborBlock& nb) final;$/;"	m	class:DustDiffusionBoundaryVariable
+override	bvals_dustdiffusion.hpp	/^                      int il, int iu, int jl, int ju, int kl, int ngh) override;$/;"	m	class:DustDiffusionBoundaryVariable
+override	bvals_dustdiffusion.hpp	/^                      int il, int iu, int jl, int ju, int ku, int ngh) override;$/;"	m	class:DustDiffusionBoundaryVariable
+override	bvals_dustdiffusion.hpp	/^                      int il, int iu, int jl, int kl, int ku, int ngh) override;$/;"	m	class:DustDiffusionBoundaryVariable
+override	bvals_dustdiffusion.hpp	/^                      int il, int iu, int ju, int kl, int ku, int ngh) override;$/;"	m	class:DustDiffusionBoundaryVariable
+override	bvals_dustdiffusion.hpp	/^                      int il, int jl, int ju, int kl, int ku, int ngh) override;$/;"	m	class:DustDiffusionBoundaryVariable
+override	bvals_dustdiffusion.hpp	/^                      int iu, int jl, int ju, int kl, int ku, int ngh) override;$/;"	m	class:DustDiffusionBoundaryVariable
+override	bvals_dustdiffusion.hpp	/^  void SetBoundarySameLevel(Real *buf, const NeighborBlock& nb) override;$/;"	m	class:DustDiffusionBoundaryVariable
+override	bvals_dustdiffusion.hpp	/^  void ShearQuantities(AthenaArray<Real> &shear_cc_, bool upper) override;$/;"	m	class:DustDiffusionBoundaryVariable

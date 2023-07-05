@@ -1,0 +1,15 @@
+To run the code:
+% module load libyogrt cray-fftw
+% salloc -N 4 --reservation=debug -t 2:00:00
+% srun -n 512 ./disk2d_omp_mp.ch planet2D_coag.input > out_p512 &
+
+
+To analyze the data, you can use the enclosed python script. If you do not have mpi4py, you will need to install it, or comment-out those lines.
+
+
+For the file format of each generated files, you can look at "file_format.txt'
+
+
+To run the batch job:
+% sbatch run_bin_sub.sh
+
