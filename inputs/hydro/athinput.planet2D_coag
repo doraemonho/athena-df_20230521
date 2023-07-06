@@ -1,51 +1,50 @@
 <comment>
 problem = 2D planet problem modified from Shengtai Li's LA-COMPASS problem
-configure = 
+configure = python configure.py --prob=planet2D_coag --coord=cylindrical --nghost=3 -mpi -hdf5 --hdf5_path=/home/doraho/local/hdf5_parallel 
 
 <job>
-problem_id      = disk2d	# problem ID: basename of output filenames
-restart         = 0     	# restart flag 0: no, 1: yes
+problem_id  = disk2d    # problem ID: basename of output filenames
+restart     = 0         # restart flag 0: no, 1: yes
 
 <output1>
 file_type  = hst        # History data dump
-dt         = 0.01       # time increment between outputs
+dt         = 0.0001     # time increment between outputs
 
 <output2>
 file_type  = hdf5       # History data dump
-dt         = 5000		# time increment (turn) between outputs
+variable   = prim       # output file format
+dt         = 5          # time increment (turn) between outputs
 
 <time>
-cfl_number  = 0.9       # The Courant, Friedrichs, & Lewy (CFL) Number
+cfl_number  = 0.3       # The Courant, Friedrichs, & Lewy (CFL) Number
 nlim        = 1000000   # cycle limit
-tlim        = 1500000   # time limit
-integrator  = vl2       # time integration algorithm
-xorder      = 2         # order of spatial reconstruction
+tlim        = 500       # time limit
+integrator  = rk2       # time integration algorithm
+xorder      = 3         # order of spatial reconstruction
 ncycle_out  = 1         # interval for stdout summary info
 
 <mesh>
-log_grid 	= 1
-nx1         = 1024 		# Number of zones in X1-direction
-x1min       = 0.9 		# minimum value of X1, 0.9
-x1max       = 600.		# maximum value of X1
-x1rat       = -1.0      # -1.0, enable the user defined mesh
-ix1_bc      = outflow   # inner-X1 boundary flag
-ox1_bc      = outflow   # outer-X1 boundary flag
+nx1         = 1024      # Number of zones in X1-direction
+x1min       = 0.9       # minimum value of X1, 0.9
+x1max       = 600.      # maximum value of X1
+x1rat       = 1.01      # -1.0, enable the user defined mesh
+ix1_bc      = user      # inner-X1 boundary flag
+ox1_bc      = user      # outer-X1 boundary flag
 
-nx2         = 2		    # Number of zones in X2-direction
-x1min       = 0.0 		# minimum value of X2
-x1max       = 6.28		# maximum value of X2
-ix2_bc      = outflow   # inner-X1 boundary flag
-ox2_bc      = outflow   # outer-X1 boundary flag
+nx2         = 1          # Number of zones in X2-direction
+x2min       = 0.0        # minimum value of X2
+x2max       = 6.28       # maximum value of X2
+ix2_bc      = periodic   # inner-X1 boundary flag
+ox2_bc      = periodic   # outer-X1 boundary flag
 
-
-nx2         = 1		    # Number of zones in X2-direction
-x1min       = -0.5 		# minimum value of X2
-x1max       =  0.5		# maximum value of X2
+nx3         = 1         # Number of zones in X2-direction
+x3min       = -0.5      # minimum value of X2
+x3max       =  0.5      # maximum value of X2
 ix3_bc      = periodic  # inner-X1 boundary flag
 ox3_bc      = periodic  # outer-X1 boundary flag
 
 <meshblock>
-nx1         = 64
+nx1         = 1024
 nx2         = 1
 nx3         = 1
 
@@ -54,71 +53,74 @@ gamma           = 1.6666666666666667 # gamma = C_p/C_v
 iso_sound_speed = 1.                 # isothermal sound speed, Lin A
 
 <problem>
-# Flag 
+# Flag
 Isothermal_Flag = true
 
+# gas disk parameters
+amp            = 0.0            # The random perturbation amplitude for gas disk
+POWER_BETA      = 1.0           # density powerlaw r^(-beta)
+M_DISK          = 8.84e-6       # disk mass prefactor (M_disk/M_star), /rc_exp in new
+i_exp_disk      = true          # exponential disk indicators
+rc_exp_disk     = 30.0          # rc for exponential disk exp(-r/rc)
+GM              = 1.0
+
 # parameter
-AspectRatio     = 0.0246322	# H/r = c_s/v_k
-MU_coef         = 1.e-3		# kinematic viscosity v, alpha-viscosity
-M_DISK          = 8.84e-6	# disk mass prefactor (M_disk/M_star), /rc_exp in new
-POWER_BETA      = 1.0		# density powerlaw r^(-beta)
-POWER_ZETA      = 0.5 		# temperature cs2 = powerlaw r^(-zeta)
-r1Reg		    = 0.8		# left bc for deadzone, monitor contrast
-var_nu_sig1	    = 0.05		# tanh() variable on left, var_nu
-r2Reg		    = 1.6		# right bc for deadzone, monitor contrast
-var_nu_sig2	    = 0.05		# tanh() variable on right, var_nu
-lbc_frac	    = 0.05		# left boundary low limit, minimum
-rbc_frac	    = 0.1		# right boundary low limit, minimum
-decay_time	    = 100000000 # 1D decay time
-TIME_RLS        = 6001.0 	# time to release planet freely
-nPlanet 	    = 0		    # number of planets
-mPlanet         = 1.0e-4	# planet mass
-r0_pl           = 1.0  		# planet position (radius)
-phi0_pl         = 1.0		# planet position (phi)*pi
-SMF_PL          = 0.7		# softening factor *(H)
-dsg_flag	    = 0		    # 0: no dsg, 1: dsg1d, 2:dsg2d, -1:no dsg and psedo_dg
-MX_modes        = 55		# maximum number of modes in 2D self-gravity
-indirect_term   = 0.0		# 0.0:no indirect_term, 0.5: calculated with dsg2d, 1.0: force
-rc_exp_disk     = 30.0		# rc for exponential disk exp(-r/rc)
-i_exp_disk	    = ture	    # exponential disk indicators
-imode_out	    = 0		    # mode out indicator
-coef_Ts         = 12.0		# time step restrict for dust
-rho_p           = 1.25		# density of dust particle (g/cm^2)
-m_star		    = 1.0		# unit (mass of the sun)
-r0_length 	    = 1.0		# unit: AU, corresponds to code r=1
-nDust		    = 141		# number of dust particle
-nInit_dust      = 20		# number of dust species initially 
-my_input_dust	= 0
-idampBC		    = 0		    # no dampBC boundary
-a_dust_min      = 1e-5		# unit: cm, minimum
-a_dust_mx       = 100.		# unit: cm, maximum
-dust_dist	    = 1.0,1.0,1.0	# distribution,sum=nDust
-floor_rhod	    = 1e-25		# floor value for dust density
-nstep_1coag	    = 100		# number of hydro steps per coagulation
-coag_intgrt	    = 1
-coag_ass	    = 0
-rmin_coag	    = 0.4		# rmin for coagulation
-v_frag		    = 1.0e3		# fragmentation velocity limit in coagulation
-ialpha_coag	    = 1		    # flag to use diff alpha for coagulation
-alpha_coag	    = 1e-3		# alpha for coag if 1alpha_coag=1
-t_terminate	    = 10.		# dust shut-off time at outer bc
-Bump_Height     = 2.0		# density Gaussian Bump height
-Bump_Width	    = 0.05		# bump width
-PTB_VR_AMP      = 1.6e-4	# random perturbation amplitude for vr
+Hratio_gas     = 0.0246322      # H/r = c_s/v_k
+MU_coef         = 1.e-3         # kinematic viscosity v, alpha-viscosity
+POWER_ZETA      = 0.5           # temperature cs2 = powerlaw r^(-zeta)
+r1Reg           = 0.8           # left bc for deadzone, monitor contrast
+var_nu_sig1     = 0.05          # tanh() variable on left, var_nu
+r2Reg           = 1.6           # right bc for deadzone, monitor contrast
+var_nu_sig2     = 0.05          # tanh() variable on right, var_nu
+lbc_frac        = 0.05          # left boundary low limit, minimum
+rbc_frac        = 0.1           # right boundary low limit, minimum
+decay_time      = 100000000     # 1D decay time
+TIME_RLS        = 6001.0        # time to release planet freely
+nPlanet         = 0             # number of planets
+mPlanet         = 1.0e-4        # planet mass
+r0_pl           = 1.0           # planet position (radius)
+phi0_pl         = 1.0           # planet position (phi)*pi
+SMF_PL          = 0.7           # softening factor *(H)
+dsg_flag        = 0             # 0: no dsg, 1: dsg1d, 2:dsg2d, -1:no dsg and psedo_dg
+MX_modes        = 55            # maximum number of modes in 2D self-gravity
+indirect_term   = 0.0           # 0.0:no indirect_term, 0.5: calculated with dsg2d, 1.0: force
+imode_out       = 0             # mode out indicator
+coef_Ts         = 12.0          # time step restrict for dust
+rho_p           = 1.25          # density of dust particle (g/cm^2)
+m_star          = 1.0           # unit (mass of the sun)
+r0_length       = 1.0           # unit: AU, corresponds to code r=1
+nDust           = 141           # number of dust particle
+nInit_dust      = 20            # number of dust species initially
+my_input_dust   = 0
+idampBC         = 0             # no dampBC boundary
+dust_dist       = 1.0,1.0,1.0   # distribution,sum=nDust
+floor_rhod      = 1e-25         # floor value for dust density
+nstep_1coag     = 100           # number of hydro steps per coagulation
+coag_intgrt     = 1
+coag_ass        = 0
+rmin_coag       = 0.4           # rmin for coagulation
+v_frag          = 1.0e3         # fragmentation velocity limit in coagulation
+ialpha_coag     = 1             # flag to use diff alpha for coagulation
+alpha_coag      = 1e-3          # alpha for coag if 1alpha_coag=1
+t_terminate     = 10.           # dust shut-off time at outer bc
+Bump_Height     = 2.0           # density Gaussian Bump height
+Bump_Width      = 0.05          # bump width
+PTB_VR_AMP      = 1.6e-4        # random perturbation amplitude for vr
 
-
-<dust>// Have to modify
-UserDefined_StoppingTime_Flag = 1             # The flag of const stopping time of dust
-Diffusion_Flag                = 0             # The flag of dust diffusion
-Const_Nu_Dust_Flag            = 1             # The flag of const nu_d of dust
-Momentum_Diffusion_Flag       = 0             # The flag of momentum diffusion
-DustFeedback_Flag             = 1             # The flag of dust feedback term
-Dust_SoundSpeed_Flag          = 0
+<dust>
+UserDefined_StoppingTime_Flag = true              # The flag of const stopping time of dust
+Diffusion_Flag                = false             # The flag of dust diffusion
+Const_Nu_Dust_Flag            = false             # The flag of const nu_d of dust
+Momentum_Diffusion_Flag       = true              # The flag of momentum diffusion
+DustFeedback_Flag             = false             # The flag of dust feedback term
+SoundSpeed_Flag               = true
 dust_xorder                   = 2
 drag_method                   = 2nd-implicit  # The drag integratos, "explicit", "semi-implicit", "1st-implicit" or "2nd-implicit"
+
+a_dust_min                    = 1e-5          # unit: cm, minimum
+a_dust_max                    = 100.          # unit: cm, maximum
 
 internal_density_1            = 0.1
 initial_D2G_1                 = 1.0
 Hratio_1                      = 0.1
 dffloor                       = 1e-6
-//log mass grid gas: sub-kep, dust : kep
