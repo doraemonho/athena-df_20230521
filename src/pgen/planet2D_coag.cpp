@@ -39,12 +39,17 @@ namespace{
 Real logr(Real x, RegionSize rs);
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 void MyStoppingTime(MeshBlock *pmb, const Real time, const AthenaArray<Real> &prim,
-    const AthenaArray<Real> &prim_df, AthenaArray<Real> &stopping_time);
+                    const AthenaArray<Real> &prim_df, AthenaArray<Real> &stopping_time);
 Real PoverRho(const Real rad, const Real phi, const Real z);
 Real Keplerian_velocity(const Real rad);
-void GetDustDensityProfile(Real a_d[NDUSTFLUIDS], const AthenaArray<Real> &u, 
-    const AthenaArray<Real> &df_cons, Real D2GRatio,
-    int i, int j, int k);
+Real GasVelProfileCyl(const Real rad, const Real phi, const Real z);
+Real dcs2dr_disk(Real r);
+Real drhodr(Real r);
+Real StokeNumber(Real r, int dust_id);
+
+void GetDustDensityProfile(Real a_d[NDUSTFLUIDS], Real &gas_dens, 
+                           AthenaArray<Real> &df_cons, Real D2GRatio,
+                           int i, int j, int k);
 void LocalIsothermalEOS(MeshBlock *pmb, int il, int iu, int jl,
     int ju, int kl, int ku, AthenaArray<Real> &prim, AthenaArray<Real> &cons);
 void DiskInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,
@@ -60,7 +65,7 @@ Real Hratio_gas, D2GRatio;
 Real beta, zeta;
 Real gm0, r0, amp;
 Real igm1;
-Real M0, rc;
+Real M0, rc, MU_coef, rho_p;
 bool exp_disk; 
 
 // Array
@@ -96,7 +101,9 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   amp = pin->GetOrAddReal("problem", "amp", 0.01);
   zeta   = pin->GetReal("problem", "POWER_ZETA");
   Hratio_gas = pin->GetReal("problem", "Hratio_gas");
+
   D2GRatio = pin->GetOrAddReal("dust", "D2GRatio", 0.01);
+  rho_p = pin->GetOrAddReal("dust", "rho_p", 1.25);
 
   // Get the flag for isothermal EOS
   Isothermal_Flag  = pin->GetOrAddBoolean("problem", "Isothermal_Flag", true);
@@ -110,7 +117,6 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   }
   return;
 }
-
 
 //========================================================================================
 //! \fn void MeshBlock::ProblemGenerator(ParameterInput *pin)
@@ -149,7 +155,9 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   M0     = pin->GetReal("problem", "M_DISK");
   rc     = pin->GetReal("problem", "rc_exp_disk");
   exp_disk = pin->GetBoolean("problem", "i_exp_disk");
+  MU_coef = pin->GetOrAddReal("problem", "MU_coef", 1.0);
   amp = pin->GetOrAddReal("problem", "amp", 0.01);
+
   Real gamma_gas = peos->GetGamma();
   Real igm1      = 1.0/(gamma_gas - 1.0);
 
@@ -160,6 +168,11 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
       Real x2 = pcoord->x2v(j);
       for (int i=is; i<=ie; ++i){
         Real x1 = pcoord->x1v(i);
+        if (x1 < 0.0) {
+          std::stringstream msg;
+          msg << "ProblemGenerator::planet2D_coag must be setup in the positive x1 direction!" << std::endl;
+          ATHENA_ERROR(msg);
+        }
 
         Real &gas_dens = phydro->u(IDN, k, j, i);
         Real &gas_mom1 = phydro->u(IM1, k, j, i);
@@ -177,19 +190,30 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           gas_dens = M0*std::pow(rad/rc,-beta);
         }
 
+
         // compute the velocity profile
         Real cs_square   = PoverRho(rad, phi, z);
-        Real vis_vel_r   = 0.0; //-1.5*(nu_alpha*cs_square/rad/omega_dyn);
-        Real vel_gas_phi = Keplerian_velocity(rad);
+        Real ps          = gas_dens*cs_square;
+        Real drho_dr     = drhodr(rad);
+        Real dpdr        = (cs_square*drho_dr + dcs2dr_disk(rad)*gas_dens);
+        Real f0          = dpdr/gas_dens*rad*rad; 
+        Real vel_gas_r   = -3.0*MU_coef/sqrt(rad)/gas_dens*(rad*rad*dpdr + ps*2.0*rad);
+        Real vel_gas_phi = std::sqrt((1.0 + f0)/rad);
         Real vel_gas_z   = 0.0;
 
         Real delta_gas_vel1 = amp*std::sqrt(cs_square)*(ran2(&iseed) - 0.5);
         Real delta_gas_vel2 = amp*std::sqrt(cs_square)*(ran2(&iseed) - 0.5);
         Real delta_gas_vel3 = amp*std::sqrt(cs_square)*(ran2(&iseed) - 0.5);
 
-        gas_mom1 = gas_dens*(vis_vel_r + delta_gas_vel1);
+        gas_mom1 = gas_dens*(vel_gas_r   + delta_gas_vel1);
         gas_mom2 = gas_dens*(vel_gas_phi + delta_gas_vel2);
-        gas_mom3 = gas_dens*(vel_gas_z + delta_gas_vel3);
+        gas_mom3 = gas_dens*(vel_gas_z   + delta_gas_vel3);
+
+        if (std::isnan(vel_gas_phi)){
+          std::stringstream msg;
+          msg << "ProblemGenerator::planet2D_coag Warning : NaN!" << " r = " << rad <<std::endl;
+          ATHENA_ERROR(msg);
+        }
 
         if (NON_BAROTROPIC_EOS) {
           phydro->u(IEN, k, j, i)  = cs_square*phydro->u(IDN, k, j, i)*igm1;
@@ -199,17 +223,27 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
         // Initialize the dust density and momentum
         if (NDUSTFLUIDS > 0) { 
-          GetDustDensityProfile(a_d, phydro->u, pdustfluids->df_cons, D2GRatio, i, j, k);
+          AthenaArray<Real> &df_cons = pdustfluids->df_cons;
+          GetDustDensityProfile(a_d, gas_dens, df_cons, D2GRatio, i, j, k);
+
           for (int n=0; n<NDUSTFLUIDS; ++n) {
             int dust_id = n;
             int rho_id  = 4*dust_id;
             int v1_id   = rho_id + 1;
             int v2_id   = rho_id + 2;
             int v3_id   = rho_id + 3;
-            Real dust_den = 0.0;//pdustfluids->df_cons(rho_id, k, j, i);
-            pdustfluids->df_cons(v1_id,  k, j, i) = dust_den*vis_vel_r;
-            pdustfluids->df_cons(v2_id,  k, j, i) = dust_den*vel_gas_phi;
-            pdustfluids->df_cons(v3_id,  k, j, i) = dust_den*vel_gas_z;
+            Real dust_den = pdustfluids->df_cons(rho_id, k, j, i);
+
+            // Get the drift velocity from dust
+            Real omega_k = pow(rad, -3.0/2.0);
+            Real St = StokeNumber(rad, n); //Stokes number
+            Real T_s_dust = St*omega_k; // stopping time
+            Real v_drift  = dpdr/gas_dens/omega_k/(St+1.0/St);
+            Real vr_dust = vel_gas_r/(1.0 + St*St) + v_drift;
+
+            pdustfluids->df_cons(v1_id,  k, j, i) = dust_den*vr_dust;
+            pdustfluids->df_cons(v2_id,  k, j, i) = dust_den*Keplerian_velocity(rad);
+            pdustfluids->df_cons(v3_id,  k, j, i) = 0.0;
           }
         }
         
@@ -272,7 +306,6 @@ void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k)
   return;
 }
 
-
 // Create a grid for x-1 dim in log 10 space and return in real space
 Real logr(Real x, RegionSize rs){
   Real dr = std::log10(rs.x1max/rs.x1min)/(rs.nx1-1);
@@ -285,6 +318,25 @@ Real Keplerian_velocity(const Real rad) {
   return vk;
 }
 
+//----------------------------------------------------------------------------------------
+//! \f  computes rotational velocity in cylindrical coordinates
+Real GasVelProfileCyl(const Real rad, const Real phi, const Real z) {
+  Real iso_cs2 = PoverRho(rad, phi, z);
+  Real   vk_term = gm0/rad;
+  Real cs_term   =  (zeta - beta)*iso_cs2;
+  if (exp_disk)
+    cs_term -= iso_cs2*pow(rad/rc,2.-beta)*(2.-beta);
+  if (cs_term + vk_term < 0.0){
+    if (Globals::my_rank == 0)
+      std::cout << "Warning : ProblemGenerator:: the pressure profile is not static!" << std::endl;
+  }
+  if (std::isnan(cs_term + vk_term)){
+    std::cout << "Warning : NaN!" << std::endl;
+  }
+  return std::sqrt(cs_term + vk_term);
+}
+
+
 //========================================================================================
 //! \fn void Mesh::MyStoppingTime(MeshBlock *pmb, const Real time, const AthenaArray<Real> &prim,
 //    const AthenaArray<Real> &prim_df, AthenaArray<Real> &stopping_time) {
@@ -292,20 +344,22 @@ Real Keplerian_velocity(const Real rad) {
 //========================================================================================
 void MyStoppingTime(MeshBlock *pmb, const Real time, const AthenaArray<Real> &prim,
     const AthenaArray<Real> &prim_df, AthenaArray<Real> &stopping_time) {
-
+  Real rad, phi, z;
   for (int n=0; n<NDUSTFLUIDS; ++n) {
     int dust_id = n;
     int rho_id  = 4*dust_id;
-    Real a_dust = a_d[dust_id];
+    Real a_dust = a_d[dust_id]; 
     for (int k=pmb->ks; k<=pmb->ke; ++k) {
       for (int j=pmb->js; j<=pmb->je; ++j) {
 #pragma omp simd
         for (int i=pmb->is; i<=pmb->ie; ++i) {
           Real gas_dens = prim(IDN, k, j, i);
           Real dust_dens = prim_df(rho_id, k, j, i);
-          //GetCylCoord(pmb->pcoord, rad_arr(i), phi_arr(i), z_arr(i), i, j, k);
+          GetCylCoord(pmb->pcoord, rad, phi, z, i, j, k);
           Real &st_time = stopping_time(dust_id, k, j, i);
-          st_time = dust_dens*a_dust/gas_dens*PI/2;
+          Real St      = StokeNumber(rad, dust_id);
+          Real omega_k = pow(rad,-3/2);
+          st_time = St/omega_k;
         }
       }
     }
@@ -339,14 +393,42 @@ void PlanetaryGravity(MeshBlock *pmb, const Real time, const Real dt, const Athe
 //! computes pressure/density in cylindrical coordinates
 Real PoverRho(const Real rad, const Real phi, const Real z) {
   Real poverr;
-  // cs^2 = T0*(r/r0)^(zeta)
-  poverr = pow(Hratio_gas,2)*std::pow(rad/r0, zeta);
+  // cs^2 = T0*(r/r0)^(-zeta)
+  poverr = pow(Hratio_gas,2)*std::pow(rad/r0, -zeta);
   return poverr;
 }
 
+Real drhodr(Real r) {
+  Real ans = 0.0;
+  if (exp_disk) {
+    Real term1 = -beta * M0 * std::pow(r / rc, -1 - beta) / std::exp(std::pow(r / rc, 2 - beta)) / rc;
+    Real term2 = -(2 - beta) * M0 * std::pow(r / rc, 1 - 2 * beta) / std::exp(std::pow(r / rc, 2 - beta)) / rc;
+    ans = term1 + term2;
+  } else {
+    ans = -beta * M0 * std::pow(r / rc, -beta) / r;
+  }
+  return ans;
+}
+
+Real dcs2dr_disk(Real r) {
+  Real r_over_r0 = r / r0;
+  Real T0 = pow(Hratio_gas,2);
+  Real derivative = -(pow(r_over_r0, -1 - zeta) * T0 * zeta) / r0;
+  return derivative;
+}
+
+Real StokeNumber(Real r, int dust_id) {
+  Real M_SUN  = 1.989e33; // solar mass in g 
+  Real AU_LENGTH = 1.49597871e13; // AU in cm
+  Real m_star    = gm0/1.0;
+  Real simga0    = (M0*m_star*M_SUN)/SQR(r0*AU_LENGTH)*pow(r/rc,-beta)*exp(-pow((r/rc),2-beta));
+  Real St = 0.5*PI*a_d[dust_id]*rho_p/simga0;
+  return St;
+}
+
 // function to compute the dust density profile
-void GetDustDensityProfile(Real a_d[NDUSTFLUIDS], const AthenaArray<Real> &u, 
-    const AthenaArray<Real> &df_cons, Real D2GRatio, 
+void GetDustDensityProfile(Real a_d[NDUSTFLUIDS], Real &gas_dens, 
+    AthenaArray<Real> &df_cons, Real D2GRatio, 
     int i, int j, int k) {
   Real sum_ri_rmin = 0.0;
   Real a_min = a_d[0];
@@ -357,14 +439,12 @@ void GetDustDensityProfile(Real a_d[NDUSTFLUIDS], const AthenaArray<Real> &u,
     int dust_id = n;
     int rho_id  = 4*dust_id;
     Real a_dust = a_d[dust_id];
-    Real gas_dens =  u(IDN, k, j, i);
-    Real dust_dens = df_cons(rho_id, k, j, i);
     Real D0 = D2GRatio*gas_dens;
+    Real &dust_dens = df_cons(rho_id, k, j, i);
     dust_dens = D0/sum_ri_rmin*std::sqrt(a_dust/a_min);
   }
   return;
 }
-
 
 //========================================================================================
 //! \fn LocalIsothermalEOS(MeshBlock *pmb, int il, int iu, int jl,
@@ -415,9 +495,9 @@ void DiskInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, Athe
       for (int i=1; i<=ngh; ++i) {
         
         Real &gas_rho_ghost  = prim(IDN, k, j, il-i);
-        Real &gas_vel1_ghost = prim(IM1, k, j, il-i);
-        Real &gas_vel2_ghost = prim(IM2, k, j, il-i);
-        Real &gas_vel3_ghost = prim(IM3, k, j, il-i);
+        Real &gas_vel1_ghost = prim(IVX, k, j, il-i);
+        Real &gas_vel2_ghost = prim(IVY, k, j, il-i);
+        Real &gas_vel3_ghost = prim(IVZ, k, j, il-i);
         Real &gas_pres_ghost = prim(IEN, k, j, il-i);
         
         // compute the gas density and the velocity profile
@@ -431,16 +511,43 @@ void DiskInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, Athe
           gas_rho_ghost = M0*std::pow(rad/rc,-beta);
         }
 
+        // compute the velocity profile
+        Real gas_dens    = gas_rho_ghost;
         Real cs_square   = PoverRho(rad, phi, z);
-        Real vis_vel_r   = 0.0;
-        Real vel_gas_phi = Keplerian_velocity(rad);
+        Real ps          = gas_dens*cs_square;
+        Real drho_dr     = drhodr(rad);
+        Real dpdr        = (cs_square*drho_dr + dcs2dr_disk(rad)*gas_dens);
+        Real f0          = dpdr/gas_dens*rad*rad; 
+        Real vel_gas_r   = prim(IDN, k, j, il-i);
+        Real vel_gas_phi = std::sqrt((1.0 + f0)/rad);
         Real vel_gas_z   = 0.0;
-        
-        gas_vel1_ghost = 0.0;
+
+        gas_vel1_ghost = 0.0;//prim(IVX, k, j, il);
         gas_vel2_ghost = vel_gas_phi;
         gas_vel3_ghost = 0.0;
         gas_pres_ghost = cs_square*gas_rho_ghost;
 
+        if (NDUSTFLUIDS > 0) {
+          for (int n=0; n<NDUSTFLUIDS; ++n) {
+            int dust_id = n;
+            int rho_id  = 4*dust_id;
+            int v1_id   = rho_id + 1;
+            int v2_id   = rho_id + 2;
+            int v3_id   = rho_id + 3;
+
+            Real &dust_rho_ghost  = prim_df(rho_id, k, j, il-i);
+            Real &dust_vel1_ghost = prim_df(v1_id,  k, j, il-i);
+            Real &dust_vel2_ghost = prim_df(v2_id,  k, j, il-i);
+            Real &dust_vel3_ghost = prim_df(v3_id,  k, j, il-i);
+
+            GetDustDensityProfile(a_d, gas_rho_ghost, prim_df, D2GRatio,
+                                  il-i, j, k);
+            dust_rho_ghost  = prim_df(rho_id, k, j, il);
+            dust_vel1_ghost = prim_df(v1_id,  k, j, il);
+            dust_vel2_ghost = Keplerian_velocity(rad);
+            dust_vel3_ghost = 0.0;
+          }
+        }
       }
     }
   }
@@ -475,16 +582,43 @@ void DiskOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, Athe
           gas_rho_ghost = M0*std::pow(rad/rc,-beta);
         }
 
+        // compute the velocity profile
+        Real gas_dens    = gas_rho_ghost;
         Real cs_square   = PoverRho(rad, phi, z);
-        Real vis_vel_r   = 0.0;
-        Real vel_gas_phi = Keplerian_velocity(rad);
+        Real ps          = gas_dens*cs_square;
+        Real drho_dr     = drhodr(rad);
+        Real dpdr        = (cs_square*drho_dr + dcs2dr_disk(rad)*gas_dens);
+        Real f0          = dpdr/gas_dens*rad*rad; 
+        Real vel_gas_r   = prim(IVX, k, j, iu);
+        Real vel_gas_phi = std::sqrt((1.0 + f0)/rad);
         Real vel_gas_z   = 0.0;
 
-        gas_vel1_ghost = 0.0;
+        gas_vel1_ghost = vel_gas_r;
         gas_vel2_ghost = vel_gas_phi;
         gas_vel3_ghost = 0.0;
         gas_pres_ghost = cs_square*gas_rho_ghost;
+        
+        if (NDUSTFLUIDS > 0) {
+          for (int n=0; n<NDUSTFLUIDS; ++n) {
+            int dust_id = n;
+            int rho_id  = 4*dust_id;
+            int v1_id   = rho_id + 1;
+            int v2_id   = rho_id + 2;
+            int v3_id   = rho_id + 3;
 
+            Real &dust_rho_ghost  = prim_df(rho_id, k, j, iu+i);
+            Real &dust_vel1_ghost = prim_df(v1_id,  k, j, iu+i);
+            Real &dust_vel2_ghost = prim_df(v2_id,  k, j, iu+i);
+            Real &dust_vel3_ghost = prim_df(v3_id,  k, j, iu+i);
+
+            GetDustDensityProfile(a_d, gas_rho_ghost, prim_df, D2GRatio,
+                                iu+i, j, k);
+            dust_rho_ghost  = prim_df(rho_id, k, j, iu);
+            dust_vel1_ghost = prim_df(v1_id,  k, j, iu);
+            dust_vel2_ghost = Keplerian_velocity(rad);
+            dust_vel3_ghost = 0.0;
+          }
+        }
       }
     }
   }

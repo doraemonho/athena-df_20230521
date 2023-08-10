@@ -370,7 +370,10 @@ Reconstruction::Reconstruction(MeshBlock *pmb, ParameterInput *pin) :
           }
         } else { // if (uniform[X1DIR]) {
           // Mignone section 2.2: conservative reconstruction from volume averages
-          Real io = std::abs(i - pmy_block_->is);  // il=is-1 ---> io = 2
+          //Real io = std::abs(i - pmy_block_->is);  // il=is-1 ---> io = 2
+          // 14 Jul 2023 From HO : the correction definition should be 
+          //            i = \zeta_{i+1/2}/\delta\zeta From Equation. B.1
+          Real io = std::abs((pco->x1f(i) - pmb->pmy_mesh->mesh_size.x1min)/pco->dx1f(i));
           // Notes:
           // - io (i offset) must be floating-point, not integer type. io^4 and io^8 terms
           // in below lines quickly cause overflows of 32-bit and 64-bit integer limtis in
@@ -415,6 +418,32 @@ Reconstruction::Reconstruction(MeshBlock *pmb, ParameterInput *pin) :
           // (typical deviations of sum(wghts)!=1.0 are around machine precision)
         }   // end "uniform[X1DIR]"
       }  // end loop over i
+
+//      if (Globals::my_rank != 0) {
+//        for (int i=pmb->is-1; i<=pmb->is+1; ++i) {
+//          //Real io = std::abs(pco->x1v(i)/pco->dx1v(i));
+//          //Real delta = 120.0*SQR(SQR(io)) - 360.0*SQR(io) + 96.0;
+//          //printf("pmy_block_->is = %d \n", pmy_block_->is);
+//          //printf("delta = %e \n", delta);
+//          printf("x1min =  %e \n", pmb->pmy_mesh->mesh_size.x1min);
+//          printf(" c1i(%d) = %.8e \n",i,   c1i(i));
+//          printf(" c2i(%d) = %.8e \n",i,   c2i(i));
+//        }
+//      }
+//      if (Globals::my_rank == 0 && pmb->ie > 100) {
+//        for (int i=67-1; i<=67+1; ++i) {
+//          //Real io1 = std::abs(i - pmy_block_->is);  // il=is-1 ---> io = 2
+//          //Real io2 = std::abs((pco->x1f(i)-pmb->block_size.x1min)/pco->dx1f(i));
+//          //Real delta1 = 120.0*SQR(SQR(io1)) - 360.0*SQR(io1) + 96.0;
+//          //Real delta2 = 120.0*SQR(SQR(io2)) - 360.0*SQR(io2) + 96.0;
+//          //printf("i = %d, io1 = %e, delta1 = %e \n", i, io1, delta1);
+//          //printf("i = %d, io2 = %e, delta2 = %e \n", i, io2, delta2);
+//          //printf("Real io = std::abs( %d - %d) = %d \n", i, pmy_block_->is, std::abs(i - pmy_block_->is));
+//          printf("x1min =  %e \n", pmb->pmy_mesh->mesh_size.x1min);
+//          printf(" c1i(%d) = %.8e \n",i,   c1i(i));
+//          printf(" c2i(%d) = %.8e \n",i,   c2i(i));
+//        }
+//      }
 
       // Compute curvilinear geometric factors for limiter (Mignone eq 48): radial
       // direction in cylindrical and spherical-polar coordinates. Same formulas
