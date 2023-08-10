@@ -25,12 +25,12 @@
 EquationOfState::EquationOfState(MeshBlock *pmb, ParameterInput *pin) :
     pmy_block_(pmb),
     gamma_{pin->GetReal("hydro", "gamma")},
-    density_floor_{pin->GetOrAddReal("hydro", "dfloor", std::sqrt(1024*float_min))},
-    pressure_floor_{pin->GetOrAddReal("hydro", "pfloor", std::sqrt(1024*float_min))},
-    scalar_floor_{pin->GetOrAddReal("hydro", "sfloor", std::sqrt(1024*float_min))} {
+    density_floor_{pin->GetOrAddReal("hydro", "dfloor", 1024*float_min)},
+    pressure_floor_{pin->GetOrAddReal("hydro", "pfloor", 1024*float_min)},
+    scalar_floor_{pin->GetOrAddReal("hydro", "sfloor", 1024*float_min)} {
 
     for (int n=0; n<NDUSTFLUIDS; ++n)
-      dustfluids_floor_[n] = pin->GetOrAddReal("dust", "dffloor_" + std::to_string(n+1), std::sqrt(1024*float_min));
+      dustfluids_floor_[n] = pin->GetOrAddReal("dust", "dffloor_" + std::to_string(n+1), 1024*float_min);
   }
 
 //----------------------------------------------------------------------------------------
