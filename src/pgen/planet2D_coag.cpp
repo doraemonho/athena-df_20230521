@@ -240,9 +240,9 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
             Real T_s_dust = St*omega_k; // stopping time
             Real v_drift  = dpdr/gas_dens/omega_k/(St+1.0/St);
             Real vr_dust = vel_gas_r/(1.0 + St*St) + v_drift;
-
+            Real vphi_dust = omega_k*rad + (vel_gas_phi - sqrt(1./rad))/(1.0+St*St);
             pdustfluids->df_cons(v1_id,  k, j, i) = dust_den*vr_dust;
-            pdustfluids->df_cons(v2_id,  k, j, i) = dust_den*Keplerian_velocity(rad);
+            pdustfluids->df_cons(v2_id,  k, j, i) = dust_den*vphi_dust;
             pdustfluids->df_cons(v3_id,  k, j, i) = 0.0;
           }
         }
